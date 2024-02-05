@@ -16,6 +16,9 @@ uvicorn = "^0.27.0.post1"
 pymupdf = "^1.23.21"
 nltk = "^3.8.1"
 pysqlite3 = "^0.5.2"
+tqdm = "^4.66.1"
+transformers = "^4.37.2"
+torch = "^2.2.0"
 
 
 

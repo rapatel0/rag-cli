@@ -3,6 +3,7 @@ from db import get_db_connection, insert_text_slice_into_db
 from embeddings import generate_embedding_for_text
 from text_processing import process_pdf_pages, process_plain_text
 from utils import setup_logging
+from tqdm import tqdm
 import logging
 
 def process_file(file_path, conn):
@@ -22,7 +23,7 @@ def process_file(file_path, conn):
 def process_folder(folder_path):
     conn = get_db_connection()
     for root, dirs, files in os.walk(folder_path):
-        for file in files:
+        for file in tqdm(files, desc="Processing files"):
             file_path = os.path.join(root, file)
             try:
                 process_file(file_path, conn)
@@ -30,4 +31,3 @@ def process_folder(folder_path):
             except Exception as e:
                 logging.error(f"Error processing file {file_path}: {e}")
     conn.close()
-
