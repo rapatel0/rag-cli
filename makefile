@@ -10,14 +10,19 @@ DOCKER_FILE := --file
 DOCKER_TARGET := --target
 DOCKER_RMI := docker rmi
 
+# Use an environment variable to specify the stage
+STAGE ?= development
+
 # Dockerfile location
 DOCKERFILE := docker/Dockerfile
+
+DATA := ~/repos/data/guidances
 
 # Image name
 IMAGE_NAME := rag-cli
 
 # Define phony targets for make
-.PHONY: help python-base builder-base development lint test production
+.PHONY: help python-base builder-base development lint test production shell
 
 # Display help for commands
 help:
@@ -61,3 +66,29 @@ clean:
 	-@$(DOCKER_RMI) $(IMAGE_NAME):lint || true
 	-@$(DOCKER_RMI) $(IMAGE_NAME):test || true
 	-@$(DOCKER_RMI) $(IMAGE_NAME):production || true
+
+
+# Conditional logic to set the Docker tag based on the STAGE variable
+ifeq ($(STAGE),python-base)
+  DOCKER_TAG := python-base
+else ifeq ($(STAGE),builder-base)
+  DOCKER_TAG := builder-base
+else ifeq ($(STAGE),development)
+  DOCKER_TAG := development
+else ifeq ($(STAGE),lint)
+  DOCKER_TAG := lint
+else ifeq ($(STAGE),test)
+  DOCKER_TAG := test
+else ifeq ($(STAGE),production)
+  DOCKER_TAG := production
+else
+  $(error Invalid stage specified)
+endif
+
+# Drop into a shell for the specified stage
+shell:
+	docker run --rm -it \
+		-v ${PWD}:/app \
+		-v $(DATA):/data \
+		--entrypoint /bin/bash \
+		$(IMAGE_NAME):$(DOCKER_TAG)
