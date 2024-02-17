@@ -1,9 +1,10 @@
 import os
-from db import get_db_connection, insert_text_slice_into_db
+from db import get_db_connection, insert_text_slice_into_db, insert_file_into_registry
 from embeddings import generate_embedding_for_text
 from text_processing import process_pdf_pages, process_plain_text
 from utils import setup_logging
 from tqdm import tqdm
+import hashlib
 import logging
 
 def process_file(file_path, conn):
@@ -15,7 +16,15 @@ def process_file(file_path, conn):
         logging.warning(f"Unsupported file type: {file_path}")
         return
 
-    for text_slice in text_slices:
+    # Calculate file hash for registry
+
+    with open(file_path, 'rb') as f:
+        file_hash = hashlib.sha256(f.read()).hexdigest()
+
+    # Insert file metadata into the file registry
+    insert_file_into_registry(conn, os.path.basename(file_path), 'PLACEHOLDER', file_path, file_hash)
+
+    for text_slice in tqdm(text_slices, desc="Generating embeddings"):
         embedding = generate_embedding_for_text(text_slice['text'])
         insert_text_slice_into_db(conn, text_slice['text'], text_slice['page'], text_slice['paragraph'],
                                   text_slice['sentence'], text_slice['type'], file_path, embedding)

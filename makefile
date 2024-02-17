@@ -16,7 +16,9 @@ STAGE ?= development
 # Dockerfile location
 DOCKERFILE := docker/Dockerfile
 
+# Development mounts
 DATA := ~/repos/data/guidances
+HUGGINGFACE := ~/.cache/huggingface
 
 # Image name
 IMAGE_NAME := rag-cli
@@ -70,25 +72,35 @@ clean:
 
 # Conditional logic to set the Docker tag based on the STAGE variable
 ifeq ($(STAGE),python-base)
-  DOCKER_TAG := python-base
+  DOCKER_SHELL_TAG := python-base
 else ifeq ($(STAGE),builder-base)
-  DOCKER_TAG := builder-base
+  DOCKER_SHELL_TAG := builder-base
 else ifeq ($(STAGE),development)
-  DOCKER_TAG := development
+  DOCKER_SHELL_TAG := development
 else ifeq ($(STAGE),lint)
-  DOCKER_TAG := lint
+  DOCKER_SHELL_TAG := lint
 else ifeq ($(STAGE),test)
-  DOCKER_TAG := test
+  DOCKER_SHELL_TAG := test
 else ifeq ($(STAGE),production)
-  DOCKER_TAG := production
+  DOCKER_SHELL_TAG := production
 else
   $(error Invalid stage specified)
 endif
 
-# Drop into a shell for the specified stage
+# Drop into a shell for the specified stage, either by exec'ing into a running container or running a new one
 shell:
-	docker run --rm -it \
-		-v ${PWD}:/app \
-		-v $(DATA):/data \
-		--entrypoint /bin/bash \
-		$(IMAGE_NAME):$(DOCKER_TAG)
+	@CONTAINER_ID=$$(docker ps -q -f name=$(IMAGE_NAME)_$(DOCKER_SHELL_TAG)); \
+	if [ -n "$$CONTAINER_ID" ]; then \
+		echo "Container is running, exec'ing into it..."; \
+		docker exec -it $$CONTAINER_ID /bin/bash; \
+	else \
+		echo "Container is not running, starting a new one..."; \
+		docker run --rm -it \
+			--name $(IMAGE_NAME)_$(DOCKER_SHELL_TAG) \
+			--gpus all \
+			-v ${PWD}:/app \
+			-v $(DATA):/data \
+			-v $(HUGGINGFACE):/root/.cache/huggingface \
+			$(IMAGE_NAME):$(DOCKER_SHELL_TAG) \
+			/bin/bash; \
+	fi

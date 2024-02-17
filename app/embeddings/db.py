@@ -25,3 +25,20 @@ def insert_text_slice_into_db(conn, text, page, paragraph, sentence, text_type, 
         VALUES (?, ?, ?, ?, ?, ?, ?)
     """, (text, page, paragraph, sentence, text_type, file_path, json.dumps(embedding)))
     conn.commit()
+
+def insert_file_into_registry(conn, filename, title, filepath, file_hash):
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS file_registry (
+            id INTEGER PRIMARY KEY,
+            filename TEXT NOT NULL,
+            title TEXT,
+            filepath TEXT NOT NULL,
+            file_hash TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
+        INSERT INTO file_registry (filename, title, filepath, file_hash)
+        VALUES (?, ?, ?, ?)
+    """, (filename, title, filepath, file_hash))
+    conn.commit()
